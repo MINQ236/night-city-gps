@@ -1,0 +1,9 @@
+/* Configurable demo APIs; never send queries to the provider until user taps Search. */
+export const SERVICES={geocode:'https://photon.komoot.io/api/',routing:'https://router.project-osrm.org/route/v1/driving/'};
+export async function getJSON(url,timeout=11000){const c=new AbortController();const t=setTimeout(()=>c.abort(),timeout);try{const r=await fetch(url,{signal:c.signal,headers:{Accept:'application/json'}});if(!r.ok)throw Error(`HTTP ${r.status}`);return await r.json();}catch(e){if(e.name==='AbortError')throw Error('Network request timed out');throw e;}finally{clearTimeout(t)}}
+export async function findPlaces(query,near,lang='en'){
+ const u=new URL(SERVICES.geocode);u.searchParams.set('q',query);u.searchParams.set('limit','6');u.searchParams.set('lang',lang);if(near){u.searchParams.set('lon',String(near[0]));u.searchParams.set('lat',String(near[1]));}
+ const data=await getJSON(u);return (data.features||[]).filter(f=>Array.isArray(f?.geometry?.coordinates)&&f.geometry.coordinates.length===2).map(f=>({coords:f.geometry.coordinates,label:placeLabel(f.properties),subtitle:[f.properties?.postcode,f.properties?.country].filter(Boolean).join(' · ')}));
+}
+export function placeLabel(p={}){const street=[p.street,p.housenumber].filter(Boolean).join(' ');const name=p.name||street||p.city||'Unnamed location';const extras=[street&&street!==name?street:null,p.city||p.locality].filter(Boolean);return [name,...extras].join(', ').slice(0,180)}
+export async function getRoutes(a,b){const url=SERVICES.routing+`${a[0]},${a[1]};${b[0]},${b[1]}?alternatives=true&steps=true&overview=full&geometries=geojson&continue_straight=default`;const data=await getJSON(url,16000);if(data.code!=='Ok'||!data.routes?.length)throw Error(data.message||'No road route found');return data.routes.slice(0,3);}

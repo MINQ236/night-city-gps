@@ -1,195 +1,99 @@
 <!doctype html>
 <html lang="en">
 <head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
-<meta name="theme-color" content="#080e13" />
-<title>NIGHT CITY // GPS</title>
-<link href="https://unpkg.com/maplibre-gl@6.16.0/dist/maplibre-gl.css" rel="stylesheet" />
-<style>
-:root{--yellow:#f4c83c;--cyan:#00daf3;--bg:#041329;--red:#f54f48}
-*{box-sizing:border-box}html,body,#map{width:100%;height:100%;margin:0}body{background:var(--bg);font:14px 'Arial Narrow',Arial,sans-serif;overflow:hidden;color:var(--yellow)}
-#map{position:absolute;inset:0}.shade{pointer-events:none;position:absolute;inset:0;background:linear-gradient(180deg,rgba(9,2,8,.66),transparent 24%,transparent 67%,rgba(6,1,8,.77));z-index:2}
-.top{position:absolute;top:max(env(safe-area-inset-top),16px);left:16px;right:16px;z-index:4;display:flex;align-items:flex-start;justify-content:space-between;gap:12px;pointer-events:none}
-.brand{font-weight:900;letter-spacing:2.5px;font-size:22px;line-height:1;text-shadow:0 0 14px #f6e54a44}.sub{font-size:10px;letter-spacing:3px;color:var(--cyan);margin-top:8px}
-.status{border:1px solid #f6e54a80;padding:7px 9px;background:#16070db8;color:var(--yellow);font-size:10px;letter-spacing:1px;text-align:right}
-.cross{z-index:3;position:absolute;pointer-events:none;left:50%;top:50%;transform:translate(-50%,-50%);color:var(--yellow);font-size:24px;text-shadow:0 0 12px #f6e54a;opacity:.86}
-.bottom{z-index:4;position:absolute;bottom:max(calc(env(safe-area-inset-bottom) + 18px),24px);left:16px;right:16px;display:flex;flex-direction:column;gap:10px}
-.panel{border-left:4px solid var(--yellow);border-top:1px solid #f6e54a88;background:linear-gradient(100deg,#240910f5,#100b1ddf);padding:12px 14px;box-shadow:0 7px 30px #0009}
-.title{font-size:10px;color:var(--cyan);letter-spacing:2px;margin-bottom:5px}.location{font-size:17px;letter-spacing:1px;font-weight:bold}.details{display:flex;justify-content:space-between;margin-top:10px;color:#a9d8d2;font-size:11px;letter-spacing:1px}
-.actions{display:flex;gap:8px}button{background:#e7d434;color:#091015;border:0;font-weight:900;letter-spacing:1px;padding:12px;flex:1;cursor:pointer}button.secondary{background:#101e32;color:var(--cyan);border:1px solid #3ce2e680}button:active{transform:scale(.98)}
-#message{position:absolute;top:110px;left:16px;right:16px;z-index:5;color:#fff;background:#491f25ed;border:1px solid var(--red);padding:9px 12px;font-size:12px;display:none}
-.maplibregl-control-container{display:none}
-
-/* Search and route controls, sized for iPhone */
-.searchbar{position:absolute;top:max(calc(env(safe-area-inset-top) + 76px),92px);left:16px;right:16px;z-index:7;max-width:480px;display:flex;flex-direction:column;gap:5px}
-.searchform{display:flex;background:#091625f2;border:1px solid #09c9df;box-shadow:0 8px 25px #0008}
-.searchform input{min-width:0;flex:1;background:transparent;color:#e6fbff;border:0;padding:12px;font:14px Arial,sans-serif;outline:none}
-.searchform button{flex:0 0 92px;padding:10px;font-size:11px;background:var(--cyan)}
-#results{display:none;background:#071a2df7;border:1px solid #087f99;max-height:34vh;overflow:auto;box-shadow:0 10px 25px #000a}
-#results button{display:block;text-align:left;width:100%;padding:12px 10px;background:transparent;color:#d4ffff;border-bottom:1px solid #246075;font:13px Arial,sans-serif;letter-spacing:0}
-#results button:last-child{border-bottom:0}#results button:active{background:#164157}
-#routeInfo{display:none;border-left:4px solid var(--yellow);background:#1e1018ed;padding:8px 12px;font-size:12px;color:#fce78a;line-height:1.5}
-#clearRoute{display:none;flex:0 0 auto;background:#32131b;color:#ffdb71;border:1px solid #eec33e;font-size:11px}
-#attribution{position:absolute;z-index:4;bottom:3px;right:5px;color:#b9e0ec;background:#031320b9;font-size:9px;padding:2px 4px}
-#attribution a{color:#b9e0ec}
-@media (max-width:520px){.top .brand{font-size:19px}.searchbar{top:max(calc(env(safe-area-inset-top) + 65px),82px)}.bottom{bottom:max(calc(env(safe-area-inset-bottom) + 8px),12px)}.panel{padding:9px 11px}.location{font-size:14px}.details{font-size:10px}.actions button{padding:10px 7px;font-size:11px}}
-</style>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+  <meta name="theme-color" content="#07182b">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Night City GPS">
+  <meta name="description" content="Cyberpunk-inspired real-world GPS navigation prototype">
+  <link rel="manifest" href="./manifest.webmanifest">
+  <link rel="icon" href="./assets/icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="./assets/icon-192.png">
+  <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@6.16.0/dist/maplibre-gl.css">
+  <link rel="stylesheet" href="./styles.css?v=1.0.0">
+  <title>NIGHT CITY // GPS</title>
 </head>
 <body>
-<div id="map"></div><div class="shade"></div>
-<div class="top"><div><div class="brand">NIGHT CITY<span style="color:var(--cyan)">.GPS</span></div><div class="sub">REAL WORLD // SYSTEM ONLINE</div></div><div class="status" id="signal">GPS // STANDBY<br>MODE // FREE ROAM</div></div>
-<div class="searchbar"><form id="searchForm" class="searchform"><input id="searchInput" placeholder="SEARCH DESTINATION // ADDRESS" aria-label="Destination address" autocomplete="street-address" required minlength="3"/><button type="submit" id="searchButton">SEARCH</button></form><div id="results" aria-label="Search results"></div><div id="routeInfo" role="status"></div></div>
-<div class="cross">⌖</div>
-<div id="message"></div>
-<div class="bottom"><div class="panel"><div class="title">◈ NAVIGATION SYSTEM / 01</div><div class="location" id="street">OSNABRÜCK // FREE ROAM</div><div class="details"><span id="coords">52.2799° N / 8.0472° E</span><span id="speed">SPD -- KM/H</span></div></div><div class="actions"><button id="locate">⌖ MY LOCATION</button><button id="recenter" class="secondary">↗ RECENTER</button><button id="clearRoute" type="button">✕ ROUTE</button></div></div>
-<div id="attribution">Map data © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">OpenStreetMap contributors</a> · <a href="https://openfreemap.org" target="_blank" rel="noopener noreferrer">OpenFreeMap</a></div>
-<script type="module">
-import * as maplibregl from 'https://unpkg.com/maplibre-gl@6.16.0/dist/maplibre-gl.mjs';
-const center=[8.0472,52.2799];
-const map=new maplibregl.Map({container:'map',style:'https://tiles.openfreemap.org/styles/dark',center,zoom:15.5,pitch:58,bearing:-15,antialias:true,attributionControl:false});
-let last=null;
-let activeDestination=null;
-let destinationMarker=null;
-let routeLoaded=false;
-const el=id=>document.getElementById(id);
-function alertMsg(t){el('message').textContent=t;el('message').style.display='block';setTimeout(()=>el('message').style.display='none',6500)}
-map.on('load',()=>{
-  // Reference palette: deep-blue map, luminous cyan roads, red/maroon 3D buildings.
-  // The style's layer IDs may change; unsupported layers stay unchanged.
-  const palette={ground:'#06172e',park:'#092338',water:'#05223a',road:'#00849c',roadGlow:'#08cce5',roadEdge:'#0ad9ef',building:'#52181d',buildingTop:'#75272a',labels:'#36d5df'};
-  const layers=[...map.getStyle().layers];
-  let buildingLayer=null;
-  for(const layer of layers){
-    const id=layer.id.toLowerCase(), typ=layer.type;
-    try{
-      if(typ==='background')map.setPaintProperty(layer.id,'background-color',palette.ground);
-      if(typ==='fill'){
-        if(/water|lake|river|ocean/.test(id)) map.setPaintProperty(layer.id,'fill-color',palette.water);
-        else if(/building/.test(id)){
-          map.setPaintProperty(layer.id,'fill-color',palette.building);
-          map.setPaintProperty(layer.id,'fill-opacity',0.98);
-          if(!buildingLayer && layer.source && layer['source-layer']) buildingLayer=layer;
-        }else if(/park|grass|green|landuse|landcover|wood|forest/.test(id)) map.setPaintProperty(layer.id,'fill-color',palette.park);
-        else if(/land|earth/.test(id)) map.setPaintProperty(layer.id,'fill-color',palette.ground);
-      }
-      if(typ==='line'){
-        if(/road|street|highway|motorway|transport|bridge|tunnel/.test(id)){
-          // Road casings are bright edges; the inner roads are turquoise-blue.
-          map.setPaintProperty(layer.id,'line-color',/case|casing|outline|border/.test(id)?palette.roadEdge:palette.road);
-          map.setPaintProperty(layer.id,'line-opacity',1);
-        } else if(/water|river|stream/.test(id)) map.setPaintProperty(layer.id,'line-color',palette.water);
-      }
-      if(typ==='symbol' && /label|place|road|street|poi/.test(id) && map.getLayoutProperty(layer.id,'text-field')){
-        map.setPaintProperty(layer.id,'text-color',palette.labels);
-        try{map.setPaintProperty(layer.id,'text-halo-color','#06132c');map.setPaintProperty(layer.id,'text-halo-width',1.4)}catch(_){}
-      }
-      if(typ==='fill-extrusion' && /building/.test(id)){
-        map.setPaintProperty(layer.id,'fill-extrusion-color',palette.buildingTop);
-        map.setPaintProperty(layer.id,'fill-extrusion-opacity',0.94);
-      }
-    }catch(e){console.debug('Unchanged layer:',layer.id,e)}
-  }
-  // Put the yellow route above the base-map layers (and after the 3D buildings below).
-  // Use existing building vectors for a tilted, three-dimensional city look.
-  // If the map provider doesn't expose heights, buildings still appear as flat red footprints.
-  if(buildingLayer){
-    try{
-      const base={id:'nc-3d-buildings',type:'fill-extrusion',source:buildingLayer.source,'source-layer':buildingLayer['source-layer'],minzoom:14,
-        paint:{'fill-extrusion-color':palette.buildingTop,'fill-extrusion-opacity':0.85,
-          'fill-extrusion-base':['coalesce',['get','render_min_height'],['get','min_height'],0],
-          'fill-extrusion-height':['coalesce',['get','render_height'],['get','height'],10]}};
-      if(buildingLayer.filter) base.filter=buildingLayer.filter;
-      map.addLayer(base);
-    }catch(e){console.debug('3D buildings not available:',e)}
-  }
-  // Separate thick dark outline and thin gold routing line.
-  try{
-    map.addSource('nc-route',{type:'geojson',data:{type:'FeatureCollection',features:[]}});
-    map.addLayer({id:'nc-route-halo',type:'line',source:'nc-route',layout:{'line-cap':'round','line-join':'round'},paint:{'line-color':'#341b13','line-width':10,'line-opacity':0.95}});
-    map.addLayer({id:'nc-route-line',type:'line',source:'nc-route',layout:{'line-cap':'round','line-join':'round'},paint:{'line-color':'#f4c83c','line-width':4.2,'line-opacity':1}});
-    routeLoaded=true;
-  }catch(e){console.error(e);alertMsg('Route layer could not initialize. Refresh page.');}
-});
-map.on('error',e=>console.warn('Map request:',e.error));
-const dot=document.createElement('div');dot.style.cssText='width:19px;height:19px;border:3px solid #071016;background:#00daf3;box-shadow:0 0 0 2px #f6e54a,0 0 22px #f6e54a;border-radius:50%';
-const marker=new maplibregl.Marker({element:dot}).setLngLat(center).addTo(map);
-function update(pos){const {longitude,latitude,speed,heading,accuracy}=pos.coords;last=[longitude,latitude];marker.setLngLat(last);map.easeTo({center:last,zoom:16,bearing:heading!==null&&heading>=0?heading:map.getBearing(),duration:900});el('coords').textContent=latitude.toFixed(5)+'° N / '+longitude.toFixed(5)+'° E';el('speed').textContent='SPD '+(speed==null?'--':Math.round(speed*3.6))+' KM/H';el('street').textContent='LIVE POSITION // TRACKING';el('signal').innerHTML='GPS // ACTIVE<br>± '+Math.round(accuracy)+' M';}
-let watch=null;
-el('locate').onclick=()=>{
- if(!navigator.geolocation){alertMsg('GPS is not available in this browser.');return}
- if(!window.isSecureContext){alertMsg('Location requires HTTPS or localhost. See README.');return}
- if(watch!==null){alertMsg('Live GPS tracking is already enabled.');return}
- el('signal').innerHTML='GPS // REQUESTING';
- watch=navigator.geolocation.watchPosition(update,err=>{watch=null;el('signal').innerHTML='GPS // OFFLINE';alertMsg('Location unavailable: '+err.message+'. Check browser permissions.');},{enableHighAccuracy:true,maximumAge:2000,timeout:15000});
-};
-el('recenter').onclick=()=>map.flyTo({center:last||center,zoom:16,pitch:45,duration:950});
+  <div id="map" role="application" aria-label="Interactive navigation map"></div>
+  <div class="vignette" aria-hidden="true"></div>
 
-// Geocode only when SEARCH is tapped: avoids overwhelming the free Photon demo service.
-const resultsEl=el('results');
-const searchBtn=el('searchButton');
-function describe(f){const p=f.properties||{};return [p.name,[p.street,p.housenumber].filter(Boolean).join(' '),p.city||p.locality,p.postcode,p.country].filter(Boolean).join(', ')}
-function hideResults(){resultsEl.style.display='none';resultsEl.replaceChildren()}
-function routeOrigin(){return last||map.getCenter().toArray()}
-function formatDuration(sec){const min=Math.round(sec/60);return min>=60?`${Math.floor(min/60)} h ${min%60} min`:`${min} min`}
-async function requestRoute(destination,label){
-  if(!routeLoaded){alertMsg('The map is still loading. Try again.');return}
-  const start=routeOrigin();
-  el('routeInfo').style.display='block';el('routeInfo').textContent='CALCULATING DRIVING ROUTE...';
-  hideResults();document.activeElement.blur();
-  try{
-    const coords=`${start[0]},${start[1]};${destination[0]},${destination[1]}`;
-    const url=`https://router.project-osrm.org/route/v1/driving/${coords}?overview=full&geometries=geojson&steps=false`;
-    const response=await fetch(url);
-    if(!response.ok)throw new Error('Routing server unavailable ('+response.status+')');
-    const data=await response.json();
-    if(data.code!=='Ok'||!data.routes?.length)throw new Error('No drivable route found');
-    const r=data.routes[0];
-    map.getSource('nc-route').setData({type:'Feature',properties:{},geometry:r.geometry});
-    if(destinationMarker)destinationMarker.remove();
-    const pin=document.createElement('div');pin.textContent='◆';pin.style.cssText='color:#f4c83c;font-size:32px;text-shadow:0 0 10px #000,0 0 14px #ffe16a';
-    destinationMarker=new maplibregl.Marker({element:pin,anchor:'center'}).setLngLat(destination).addTo(map);
-    activeDestination=destination;
-    const km=(r.distance/1000).toFixed(1);
-    el('routeInfo').textContent=`◈ ${label}  //  ${km} KM  //  APPROX. ${formatDuration(r.duration)}`;
-    el('clearRoute').style.display='block';
-    el('street').textContent='ROUTE ACTIVE // '+label.toUpperCase().slice(0,35);
-    const bounds=new maplibregl.LngLatBounds();
-    for(const pos of r.geometry.coordinates)bounds.extend(pos);
-    map.fitBounds(bounds,{padding:{top:155,bottom:195,left:40,right:40},maxZoom:16,duration:1000,pitch:25});
-  }catch(error){console.error(error);alertMsg('Cannot create route: '+error.message);el('routeInfo').textContent='ROUTE UNAVAILABLE // TRY A DIFFERENT ADDRESS';}
-}
-el('searchForm').addEventListener('submit',async event=>{
- event.preventDefault();const q=el('searchInput').value.trim();if(q.length<3)return;
- searchBtn.disabled=true;searchBtn.textContent='...';hideResults();
- try{
-  const c=routeOrigin();const url=new URL('https://photon.komoot.io/api/');
-  url.searchParams.set('q',q);url.searchParams.set('limit','5');url.searchParams.set('lang','de');
-  url.searchParams.set('lon',String(c[0]));url.searchParams.set('lat',String(c[1]));
-  const response=await fetch(url);
-  if(!response.ok)throw new Error('Search server unavailable ('+response.status+')');
-  const data=await response.json();
-  const features=(data.features||[]).filter(x=>x.geometry?.coordinates?.length===2);
-  if(!features.length){alertMsg('No matching addresses found. Try adding the city.');return}
-  for(const f of features){
-    const label=describe(f)||'Unnamed destination';
-    const b=document.createElement('button');b.type='button';b.textContent='⌖ '+label;
-    b.addEventListener('click',()=>requestRoute(f.geometry.coordinates,label));
-    resultsEl.appendChild(b);
-  }
-  resultsEl.style.display='block';
- }catch(error){alertMsg('Search failed: '+error.message)}
- finally{searchBtn.disabled=false;searchBtn.textContent='SEARCH'}
-});
-el('clearRoute').addEventListener('click',()=>{
-  activeDestination=null;
-  if(routeLoaded)map.getSource('nc-route').setData({type:'FeatureCollection',features:[]});
-  if(destinationMarker){destinationMarker.remove();destinationMarker=null;}
-  el('routeInfo').style.display='none';el('clearRoute').style.display='none';
-  el('street').textContent=last?'LIVE POSITION // TRACKING':'OSNABRÜCK // FREE ROAM';
-  alertMsg('Route cleared.');
-});
+  <header class="masthead">
+    <div><div class="brand">NIGHT CITY<span>.GPS</span></div><div class="strap">REAL-WORLD NAVIGATION // 01</div></div>
+    <div class="connection" id="signal" aria-live="polite">GPS // STANDBY</div>
+  </header>
 
-</script>
+  <section class="search" aria-label="Destination planning">
+    <form id="searchForm" class="searchrow">
+      <label class="sr" for="searchInput">Destination</label>
+      <input id="searchInput" name="destination" placeholder="ENTER DESTINATION / ADDRESS" minlength="3" autocomplete="off" required>
+      <button type="submit" id="searchButton" title="Search"><span class="searchword">SEARCH</span><span class="searchglyph">⌕</span></button>
+    </form>
+    <div id="results" class="results" hidden aria-label="Matching destinations"></div>
+    <div class="searchfoot">
+      <button type="button" id="pickMap" class="ghost small">⌖ SELECT ON MAP</button>
+      <button type="button" id="recentToggle" class="ghost small">★ SAVED / RECENT</button>
+    </div>
+    <div id="savedPanel" class="results" hidden></div>
+  </section>
+
+  <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
+  <div id="pickHint" class="pick-hint" hidden>SELECT A LOCATION ON THE MAP <button type="button" id="cancelPick">CANCEL</button></div>
+  <div id="reticle" class="reticle" aria-hidden="true">⌖</div>
+
+  <aside class="mapactions" aria-label="Map controls">
+    <button id="locate" title="Start location tracking" aria-label="Start GPS">⌖</button>
+    <button id="recenter" title="Return to current location" aria-label="Recenter map">◎</button>
+    <button id="zoomIn" title="Zoom in" aria-label="Zoom in">＋</button>
+    <button id="zoomOut" title="Zoom out" aria-label="Zoom out">−</button>
+  </aside>
+
+  <section class="navigation" aria-label="Navigation dashboard">
+    <div id="maneuverPanel" class="maneuver" hidden>
+      <div class="turnicon" id="turnIcon" aria-hidden="true">↱</div>
+      <div class="turntext"><div id="turnDistance" class="turn-distance">-- M</div><div id="turnText" class="turn-text">CONTINUE</div></div>
+    </div>
+    <div id="routePanel" class="routepanel" hidden>
+      <div class="routetop">
+        <div class="destinationlabel"><div class="eyebrow">◈ ACTIVE ROUTE</div><div id="destinationTitle" class="desttitle">DESTINATION</div></div>
+        <button id="favoriteBtn" class="iconbutton" title="Save destination" aria-label="Save destination">☆</button>
+      </div>
+      <div class="metrics">
+        <div><div class="metric" id="remaining">-- km</div><div class="metriclabel">REMAINING</div></div>
+        <div><div class="metric" id="timeLeft">-- min</div><div class="metriclabel">TIME</div></div>
+        <div><div class="metric" id="eta">--:--</div><div class="metriclabel">ETA</div></div>
+      </div>
+      <div class="routebuttons">
+        <button id="startNav" class="primary">▶ START</button>
+        <button id="routeAlternative" class="secondary" hidden>ALT ROUTE</button>
+        <button id="shareRoute" class="secondary">SHARE</button>
+        <button id="clearRoute" class="danger">END ROUTE</button>
+      </div>
+    </div>
+    <div class="dash">
+      <div class="dash-left"><div class="eyebrow" id="modeLabel">SYSTEM // FREE ROAM</div><div class="dash-title" id="street">OSNABRÜCK // STANDBY</div><div class="telemetry"><span id="speed">-- KM/H</span><span id="accuracy">GPS NOT ACTIVE</span></div></div>
+      <div class="dash-controls">
+        <button id="driveMode" class="secondary" aria-pressed="false">▲ DRIVE</button>
+        <button id="voice" class="secondary" aria-pressed="false" title="Voice guidance">♪ OFF</button>
+        <button id="settings" class="secondary" title="Settings">⚙</button>
+      </div>
+    </div>
+  </section>
+
+  <dialog id="settingsDialog" class="settingsdialog">
+    <form method="dialog"><div class="dialoghead"><strong>NAVIGATION // CONFIG</strong><button value="close" aria-label="Close settings">✕</button></div></form>
+    <label for="units">DISTANCE UNITS</label>
+    <select id="units"><option value="metric">KILOMETERS / METERS</option><option value="imperial">MILES / FEET</option></select>
+    <label for="language">SPEECH / PLACE SEARCH</label>
+    <select id="language"><option value="en">ENGLISH</option><option value="de">DEUTSCH</option></select>
+    <label for="pitch">DRIVE CAMERA TILT</label>
+    <input id="pitch" type="range" min="0" max="65" step="5" value="55">
+    <div class="settingsactions"><button id="testVoice" type="button">TEST VOICE</button><button id="resetData" type="button">CLEAR SAVED PLACES</button></div>
+    <p class="help">GPS works only while this web app is in the foreground. An internet connection is required for maps, place search and routing. Demo map/routing providers are not guaranteed navigation services.</p>
+    <div class="settingsfoot">NIGHT CITY GPS <span id="version">v1.0.0</span> — FAN-INSPIRED, UNOFFICIAL</div>
+  </dialog>
+  <div id="attribution">© <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> · <a href="https://openfreemap.org" target="_blank" rel="noopener">OpenFreeMap</a> · <a href="https://project-osrm.org/" target="_blank" rel="noopener">OSRM</a> · <a href="https://photon.komoot.io/" target="_blank" rel="noopener">Photon</a></div>
+  <script type="module" src="./app.mjs?v=1.0.0"></script>
 </body>
 </html>

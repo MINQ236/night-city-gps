@@ -1,0 +1,13 @@
+{
+  "name":"Night City GPS — Navigation",
+  "short_name":"Night City GPS",
+  "description":"Unofficial cyberpunk-inspired real-world navigation prototype",
+  "id":"./",
+  "start_url":"./",
+  "scope":"./",
+  "display":"standalone",
+  "orientation":"any",
+  "background_color":"#06172e",
+  "theme_color":"#07182b",
+  "icons":[{"src":"./assets/icon-192.png","sizes":"192x192","type":"image/png","purpose":"any maskable"},{"src":"./assets/icon-512.png","sizes":"512x512","type":"image/png","purpose":"any maskable"}]
+}

@@ -1,0 +1,21 @@
+name: Web tests
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Syntax and navigation geometry unit tests
+        run: |
+          node --check app.mjs
+          node --check nav-core.mjs
+          node --check providers.mjs
+          node --check service-worker.js
+          node --test tests/*.test.mjs
