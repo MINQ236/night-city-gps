@@ -20,19 +20,38 @@
 .actions{display:flex;gap:8px}button{background:#e7d434;color:#091015;border:0;font-weight:900;letter-spacing:1px;padding:12px;flex:1;cursor:pointer}button.secondary{background:#101e32;color:var(--cyan);border:1px solid #3ce2e680}button:active{transform:scale(.98)}
 #message{position:absolute;top:110px;left:16px;right:16px;z-index:5;color:#fff;background:#491f25ed;border:1px solid var(--red);padding:9px 12px;font-size:12px;display:none}
 .maplibregl-control-container{display:none}
+
+/* Search and route controls, sized for iPhone */
+.searchbar{position:absolute;top:max(calc(env(safe-area-inset-top) + 76px),92px);left:16px;right:16px;z-index:7;max-width:480px;display:flex;flex-direction:column;gap:5px}
+.searchform{display:flex;background:#091625f2;border:1px solid #09c9df;box-shadow:0 8px 25px #0008}
+.searchform input{min-width:0;flex:1;background:transparent;color:#e6fbff;border:0;padding:12px;font:14px Arial,sans-serif;outline:none}
+.searchform button{flex:0 0 92px;padding:10px;font-size:11px;background:var(--cyan)}
+#results{display:none;background:#071a2df7;border:1px solid #087f99;max-height:34vh;overflow:auto;box-shadow:0 10px 25px #000a}
+#results button{display:block;text-align:left;width:100%;padding:12px 10px;background:transparent;color:#d4ffff;border-bottom:1px solid #246075;font:13px Arial,sans-serif;letter-spacing:0}
+#results button:last-child{border-bottom:0}#results button:active{background:#164157}
+#routeInfo{display:none;border-left:4px solid var(--yellow);background:#1e1018ed;padding:8px 12px;font-size:12px;color:#fce78a;line-height:1.5}
+#clearRoute{display:none;flex:0 0 auto;background:#32131b;color:#ffdb71;border:1px solid #eec33e;font-size:11px}
+#attribution{position:absolute;z-index:4;bottom:3px;right:5px;color:#b9e0ec;background:#031320b9;font-size:9px;padding:2px 4px}
+#attribution a{color:#b9e0ec}
+@media (max-width:520px){.top .brand{font-size:19px}.searchbar{top:max(calc(env(safe-area-inset-top) + 65px),82px)}.bottom{bottom:max(calc(env(safe-area-inset-bottom) + 8px),12px)}.panel{padding:9px 11px}.location{font-size:14px}.details{font-size:10px}.actions button{padding:10px 7px;font-size:11px}}
 </style>
 </head>
 <body>
 <div id="map"></div><div class="shade"></div>
 <div class="top"><div><div class="brand">NIGHT CITY<span style="color:var(--cyan)">.GPS</span></div><div class="sub">REAL WORLD // SYSTEM ONLINE</div></div><div class="status" id="signal">GPS // STANDBY<br>MODE // FREE ROAM</div></div>
+<div class="searchbar"><form id="searchForm" class="searchform"><input id="searchInput" placeholder="SEARCH DESTINATION // ADDRESS" aria-label="Destination address" autocomplete="street-address" required minlength="3"/><button type="submit" id="searchButton">SEARCH</button></form><div id="results" aria-label="Search results"></div><div id="routeInfo" role="status"></div></div>
 <div class="cross">⌖</div>
 <div id="message"></div>
-<div class="bottom"><div class="panel"><div class="title">◈ NAVIGATION SYSTEM / 01</div><div class="location" id="street">OSNABRÜCK // FREE ROAM</div><div class="details"><span id="coords">52.2799° N / 8.0472° E</span><span id="speed">SPD -- KM/H</span></div></div><div class="actions"><button id="locate">⌖ MY LOCATION</button><button id="recenter" class="secondary">↗ RECENTER</button></div><div style="font-size:9px;color:#9bacae;text-align:right">MAP DATA © OPENSTREETMAP CONTRIBUTORS</div></div>
+<div class="bottom"><div class="panel"><div class="title">◈ NAVIGATION SYSTEM / 01</div><div class="location" id="street">OSNABRÜCK // FREE ROAM</div><div class="details"><span id="coords">52.2799° N / 8.0472° E</span><span id="speed">SPD -- KM/H</span></div></div><div class="actions"><button id="locate">⌖ MY LOCATION</button><button id="recenter" class="secondary">↗ RECENTER</button><button id="clearRoute" type="button">✕ ROUTE</button></div></div>
+<div id="attribution">Map data © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">OpenStreetMap contributors</a> · <a href="https://openfreemap.org" target="_blank" rel="noopener noreferrer">OpenFreeMap</a></div>
 <script type="module">
 import * as maplibregl from 'https://unpkg.com/maplibre-gl@6.16.0/dist/maplibre-gl.mjs';
 const center=[8.0472,52.2799];
 const map=new maplibregl.Map({container:'map',style:'https://tiles.openfreemap.org/styles/dark',center,zoom:15.5,pitch:58,bearing:-15,antialias:true,attributionControl:false});
 let last=null;
+let activeDestination=null;
+let destinationMarker=null;
+let routeLoaded=false;
 const el=id=>document.getElementById(id);
 function alertMsg(t){el('message').textContent=t;el('message').style.display='block';setTimeout(()=>el('message').style.display='none',6500)}
 map.on('load',()=>{
@@ -71,6 +90,7 @@ map.on('load',()=>{
       }
     }catch(e){console.debug('Unchanged layer:',layer.id,e)}
   }
+  // Put the yellow route above the base-map layers (and after the 3D buildings below).
   // Use existing building vectors for a tilted, three-dimensional city look.
   // If the map provider doesn't expose heights, buildings still appear as flat red footprints.
   if(buildingLayer){
@@ -83,6 +103,13 @@ map.on('load',()=>{
       map.addLayer(base);
     }catch(e){console.debug('3D buildings not available:',e)}
   }
+  // Separate thick dark outline and thin gold routing line.
+  try{
+    map.addSource('nc-route',{type:'geojson',data:{type:'FeatureCollection',features:[]}});
+    map.addLayer({id:'nc-route-halo',type:'line',source:'nc-route',layout:{'line-cap':'round','line-join':'round'},paint:{'line-color':'#341b13','line-width':10,'line-opacity':0.95}});
+    map.addLayer({id:'nc-route-line',type:'line',source:'nc-route',layout:{'line-cap':'round','line-join':'round'},paint:{'line-color':'#f4c83c','line-width':4.2,'line-opacity':1}});
+    routeLoaded=true;
+  }catch(e){console.error(e);alertMsg('Route layer could not initialize. Refresh page.');}
 });
 map.on('error',e=>console.warn('Map request:',e.error));
 const dot=document.createElement('div');dot.style.cssText='width:19px;height:19px;border:3px solid #071016;background:#00daf3;box-shadow:0 0 0 2px #f6e54a,0 0 22px #f6e54a;border-radius:50%';
@@ -97,6 +124,72 @@ el('locate').onclick=()=>{
  watch=navigator.geolocation.watchPosition(update,err=>{watch=null;el('signal').innerHTML='GPS // OFFLINE';alertMsg('Location unavailable: '+err.message+'. Check browser permissions.');},{enableHighAccuracy:true,maximumAge:2000,timeout:15000});
 };
 el('recenter').onclick=()=>map.flyTo({center:last||center,zoom:16,pitch:45,duration:950});
+
+// Geocode only when SEARCH is tapped: avoids overwhelming the free Photon demo service.
+const resultsEl=el('results');
+const searchBtn=el('searchButton');
+function describe(f){const p=f.properties||{};return [p.name,[p.street,p.housenumber].filter(Boolean).join(' '),p.city||p.locality,p.postcode,p.country].filter(Boolean).join(', ')}
+function hideResults(){resultsEl.style.display='none';resultsEl.replaceChildren()}
+function routeOrigin(){return last||map.getCenter().toArray()}
+function formatDuration(sec){const min=Math.round(sec/60);return min>=60?`${Math.floor(min/60)} h ${min%60} min`:`${min} min`}
+async function requestRoute(destination,label){
+  if(!routeLoaded){alertMsg('The map is still loading. Try again.');return}
+  const start=routeOrigin();
+  el('routeInfo').style.display='block';el('routeInfo').textContent='CALCULATING DRIVING ROUTE...';
+  hideResults();document.activeElement.blur();
+  try{
+    const coords=`${start[0]},${start[1]};${destination[0]},${destination[1]}`;
+    const url=`https://router.project-osrm.org/route/v1/driving/${coords}?overview=full&geometries=geojson&steps=false`;
+    const response=await fetch(url);
+    if(!response.ok)throw new Error('Routing server unavailable ('+response.status+')');
+    const data=await response.json();
+    if(data.code!=='Ok'||!data.routes?.length)throw new Error('No drivable route found');
+    const r=data.routes[0];
+    map.getSource('nc-route').setData({type:'Feature',properties:{},geometry:r.geometry});
+    if(destinationMarker)destinationMarker.remove();
+    const pin=document.createElement('div');pin.textContent='◆';pin.style.cssText='color:#f4c83c;font-size:32px;text-shadow:0 0 10px #000,0 0 14px #ffe16a';
+    destinationMarker=new maplibregl.Marker({element:pin,anchor:'center'}).setLngLat(destination).addTo(map);
+    activeDestination=destination;
+    const km=(r.distance/1000).toFixed(1);
+    el('routeInfo').textContent=`◈ ${label}  //  ${km} KM  //  APPROX. ${formatDuration(r.duration)}`;
+    el('clearRoute').style.display='block';
+    el('street').textContent='ROUTE ACTIVE // '+label.toUpperCase().slice(0,35);
+    const bounds=new maplibregl.LngLatBounds();
+    for(const pos of r.geometry.coordinates)bounds.extend(pos);
+    map.fitBounds(bounds,{padding:{top:155,bottom:195,left:40,right:40},maxZoom:16,duration:1000,pitch:25});
+  }catch(error){console.error(error);alertMsg('Cannot create route: '+error.message);el('routeInfo').textContent='ROUTE UNAVAILABLE // TRY A DIFFERENT ADDRESS';}
+}
+el('searchForm').addEventListener('submit',async event=>{
+ event.preventDefault();const q=el('searchInput').value.trim();if(q.length<3)return;
+ searchBtn.disabled=true;searchBtn.textContent='...';hideResults();
+ try{
+  const c=routeOrigin();const url=new URL('https://photon.komoot.io/api/');
+  url.searchParams.set('q',q);url.searchParams.set('limit','5');url.searchParams.set('lang','de');
+  url.searchParams.set('lon',String(c[0]));url.searchParams.set('lat',String(c[1]));
+  const response=await fetch(url);
+  if(!response.ok)throw new Error('Search server unavailable ('+response.status+')');
+  const data=await response.json();
+  const features=(data.features||[]).filter(x=>x.geometry?.coordinates?.length===2);
+  if(!features.length){alertMsg('No matching addresses found. Try adding the city.');return}
+  for(const f of features){
+    const label=describe(f)||'Unnamed destination';
+    const b=document.createElement('button');b.type='button';b.textContent='⌖ '+label;
+    b.addEventListener('click',()=>requestRoute(f.geometry.coordinates,label));
+    resultsEl.appendChild(b);
+  }
+  resultsEl.style.display='block';
+ }catch(error){alertMsg('Search failed: '+error.message)}
+ finally{searchBtn.disabled=false;searchBtn.textContent='SEARCH'}
+});
+el('clearRoute').addEventListener('click',()=>{
+  activeDestination=null;
+  if(routeLoaded)map.getSource('nc-route').setData({type:'FeatureCollection',features:[]});
+  if(destinationMarker){destinationMarker.remove();destinationMarker=null;}
+  el('routeInfo').style.display='none';el('clearRoute').style.display='none';
+  el('street').textContent=last?'LIVE POSITION // TRACKING':'OSNABRÜCK // FREE ROAM';
+  alertMsg('Route cleared.');
+});
+
 </script>
 </body>
 </html>
