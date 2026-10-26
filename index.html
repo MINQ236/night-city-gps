@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+<meta name="theme-color" content="#080e13" />
+<title>NIGHT CITY // GPS</title>
+<link href="https://unpkg.com/maplibre-gl@6.16.0/dist/maplibre-gl.css" rel="stylesheet" />
+<style>
+:root{--yellow:#f4c83c;--cyan:#00daf3;--bg:#041329;--red:#f54f48}
+*{box-sizing:border-box}html,body,#map{width:100%;height:100%;margin:0}body{background:var(--bg);font:14px 'Arial Narrow',Arial,sans-serif;overflow:hidden;color:var(--yellow)}
+#map{position:absolute;inset:0}.shade{pointer-events:none;position:absolute;inset:0;background:linear-gradient(180deg,rgba(9,2,8,.66),transparent 24%,transparent 67%,rgba(6,1,8,.77));z-index:2}
+.top{position:absolute;top:max(env(safe-area-inset-top),16px);left:16px;right:16px;z-index:4;display:flex;align-items:flex-start;justify-content:space-between;gap:12px;pointer-events:none}
+.brand{font-weight:900;letter-spacing:2.5px;font-size:22px;line-height:1;text-shadow:0 0 14px #f6e54a44}.sub{font-size:10px;letter-spacing:3px;color:var(--cyan);margin-top:8px}
+.status{border:1px solid #f6e54a80;padding:7px 9px;background:#16070db8;color:var(--yellow);font-size:10px;letter-spacing:1px;text-align:right}
+.cross{z-index:3;position:absolute;pointer-events:none;left:50%;top:50%;transform:translate(-50%,-50%);color:var(--yellow);font-size:24px;text-shadow:0 0 12px #f6e54a;opacity:.86}
+.bottom{z-index:4;position:absolute;bottom:max(calc(env(safe-area-inset-bottom) + 18px),24px);left:16px;right:16px;display:flex;flex-direction:column;gap:10px}
+.panel{border-left:4px solid var(--yellow);border-top:1px solid #f6e54a88;background:linear-gradient(100deg,#240910f5,#100b1ddf);padding:12px 14px;box-shadow:0 7px 30px #0009}
+.title{font-size:10px;color:var(--cyan);letter-spacing:2px;margin-bottom:5px}.location{font-size:17px;letter-spacing:1px;font-weight:bold}.details{display:flex;justify-content:space-between;margin-top:10px;color:#a9d8d2;font-size:11px;letter-spacing:1px}
+.actions{display:flex;gap:8px}button{background:#e7d434;color:#091015;border:0;font-weight:900;letter-spacing:1px;padding:12px;flex:1;cursor:pointer}button.secondary{background:#101e32;color:var(--cyan);border:1px solid #3ce2e680}button:active{transform:scale(.98)}
+#message{position:absolute;top:110px;left:16px;right:16px;z-index:5;color:#fff;background:#491f25ed;border:1px solid var(--red);padding:9px 12px;font-size:12px;display:none}
+.maplibregl-control-container{display:none}
+</style>
+</head>
+<body>
+<div id="map"></div><div class="shade"></div>
+<div class="top"><div><div class="brand">NIGHT CITY<span style="color:var(--cyan)">.GPS</span></div><div class="sub">REAL WORLD // SYSTEM ONLINE</div></div><div class="status" id="signal">GPS // STANDBY<br>MODE // FREE ROAM</div></div>
+<div class="cross">⌖</div>
+<div id="message"></div>
+<div class="bottom"><div class="panel"><div class="title">◈ NAVIGATION SYSTEM / 01</div><div class="location" id="street">OSNABRÜCK // FREE ROAM</div><div class="details"><span id="coords">52.2799° N / 8.0472° E</span><span id="speed">SPD -- KM/H</span></div></div><div class="actions"><button id="locate">⌖ MY LOCATION</button><button id="recenter" class="secondary">↗ RECENTER</button></div><div style="font-size:9px;color:#9bacae;text-align:right">MAP DATA © OPENSTREETMAP CONTRIBUTORS</div></div>
+<script type="module">
+import * as maplibregl from 'https://unpkg.com/maplibre-gl@6.16.0/dist/maplibre-gl.mjs';
+const center=[8.0472,52.2799];
+const map=new maplibregl.Map({container:'map',style:'https://tiles.openfreemap.org/styles/dark',center,zoom:15.5,pitch:58,bearing:-15,antialias:true,attributionControl:false});
+let last=null;
+const el=id=>document.getElementById(id);
+function alertMsg(t){el('message').textContent=t;el('message').style.display='block';setTimeout(()=>el('message').style.display='none',6500)}
+map.on('load',()=>{
+  // Reference palette: deep-blue map, luminous cyan roads, red/maroon 3D buildings.
+  // The style's layer IDs may change; unsupported layers stay unchanged.
+  const palette={ground:'#06172e',park:'#092338',water:'#05223a',road:'#00849c',roadGlow:'#08cce5',roadEdge:'#0ad9ef',building:'#52181d',buildingTop:'#75272a',labels:'#36d5df'};
+  const layers=[...map.getStyle().layers];
+  let buildingLayer=null;
+  for(const layer of layers){
+    const id=layer.id.toLowerCase(), typ=layer.type;
+    try{
+      if(typ==='background')map.setPaintProperty(layer.id,'background-color',palette.ground);
+      if(typ==='fill'){
+        if(/water|lake|river|ocean/.test(id)) map.setPaintProperty(layer.id,'fill-color',palette.water);
+        else if(/building/.test(id)){
+          map.setPaintProperty(layer.id,'fill-color',palette.building);
+          map.setPaintProperty(layer.id,'fill-opacity',0.98);
+          if(!buildingLayer && layer.source && layer['source-layer']) buildingLayer=layer;
+        }else if(/park|grass|green|landuse|landcover|wood|forest/.test(id)) map.setPaintProperty(layer.id,'fill-color',palette.park);
+        else if(/land|earth/.test(id)) map.setPaintProperty(layer.id,'fill-color',palette.ground);
+      }
+      if(typ==='line'){
+        if(/road|street|highway|motorway|transport|bridge|tunnel/.test(id)){
+          // Road casings are bright edges; the inner roads are turquoise-blue.
+          map.setPaintProperty(layer.id,'line-color',/case|casing|outline|border/.test(id)?palette.roadEdge:palette.road);
+          map.setPaintProperty(layer.id,'line-opacity',1);
+        } else if(/water|river|stream/.test(id)) map.setPaintProperty(layer.id,'line-color',palette.water);
+      }
+      if(typ==='symbol' && /label|place|road|street|poi/.test(id) && map.getLayoutProperty(layer.id,'text-field')){
+        map.setPaintProperty(layer.id,'text-color',palette.labels);
+        try{map.setPaintProperty(layer.id,'text-halo-color','#06132c');map.setPaintProperty(layer.id,'text-halo-width',1.4)}catch(_){}
+      }
+      if(typ==='fill-extrusion' && /building/.test(id)){
+        map.setPaintProperty(layer.id,'fill-extrusion-color',palette.buildingTop);
+        map.setPaintProperty(layer.id,'fill-extrusion-opacity',0.94);
+      }
+    }catch(e){console.debug('Unchanged layer:',layer.id,e)}
+  }
+  // Use existing building vectors for a tilted, three-dimensional city look.
+  // If the map provider doesn't expose heights, buildings still appear as flat red footprints.
+  if(buildingLayer){
+    try{
+      const base={id:'nc-3d-buildings',type:'fill-extrusion',source:buildingLayer.source,'source-layer':buildingLayer['source-layer'],minzoom:14,
+        paint:{'fill-extrusion-color':palette.buildingTop,'fill-extrusion-opacity':0.85,
+          'fill-extrusion-base':['coalesce',['get','render_min_height'],['get','min_height'],0],
+          'fill-extrusion-height':['coalesce',['get','render_height'],['get','height'],10]}};
+      if(buildingLayer.filter) base.filter=buildingLayer.filter;
+      map.addLayer(base);
+    }catch(e){console.debug('3D buildings not available:',e)}
+  }
+});
+map.on('error',e=>console.warn('Map request:',e.error));
+const dot=document.createElement('div');dot.style.cssText='width:19px;height:19px;border:3px solid #071016;background:#00daf3;box-shadow:0 0 0 2px #f6e54a,0 0 22px #f6e54a;border-radius:50%';
+const marker=new maplibregl.Marker({element:dot}).setLngLat(center).addTo(map);
+function update(pos){const {longitude,latitude,speed,heading,accuracy}=pos.coords;last=[longitude,latitude];marker.setLngLat(last);map.easeTo({center:last,zoom:16,bearing:heading!==null&&heading>=0?heading:map.getBearing(),duration:900});el('coords').textContent=latitude.toFixed(5)+'° N / '+longitude.toFixed(5)+'° E';el('speed').textContent='SPD '+(speed==null?'--':Math.round(speed*3.6))+' KM/H';el('street').textContent='LIVE POSITION // TRACKING';el('signal').innerHTML='GPS // ACTIVE<br>± '+Math.round(accuracy)+' M';}
+let watch=null;
+el('locate').onclick=()=>{
+ if(!navigator.geolocation){alertMsg('GPS is not available in this browser.');return}
+ if(!window.isSecureContext){alertMsg('Location requires HTTPS or localhost. See README.');return}
+ if(watch!==null){alertMsg('Live GPS tracking is already enabled.');return}
+ el('signal').innerHTML='GPS // REQUESTING';
+ watch=navigator.geolocation.watchPosition(update,err=>{watch=null;el('signal').innerHTML='GPS // OFFLINE';alertMsg('Location unavailable: '+err.message+'. Check browser permissions.');},{enableHighAccuracy:true,maximumAge:2000,timeout:15000});
+};
+el('recenter').onclick=()=>map.flyTo({center:last||center,zoom:16,pitch:45,duration:950});
+</script>
+</body>
+</html>
